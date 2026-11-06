@@ -6,13 +6,13 @@ Q2C 是一个 macOS 菜单栏工具：按快捷键复制来源应用中的内容
 
 ## 界面预览
 
-设置面板：
-
-<img src="docs/images/settings.png" alt="Q2C 设置面板：备注、示例线程链接、默认星标与删除按钮" width="600">
-
 菜单栏设置浮窗：
 
 <img src="docs/images/settings-popover.png" alt="Q2C 菜单栏设置浮窗，线程链接已脱敏" width="600">
+
+设置面板：
+
+<img src="docs/images/settings.png" alt="Q2C 设置面板：备注、示例线程链接、默认星标与删除按钮" width="600">
 
 目标选择弹窗：
 
