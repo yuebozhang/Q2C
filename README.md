@@ -80,7 +80,6 @@ zsh scripts/build-app.sh
 - [使用流程](docs/usage-flow.md)
 - [实现说明](docs/implementation.md)
 - [实施路线](docs/roadmap.md)
-- [历史开发验证记录](docs/verification.md)：包含方案试验和回退过程，不代表当前界面或测试数量。
 - [开发约定](AGENTS.md)
 
 这是独立开发的工具，并非 OpenAI 官方应用。
