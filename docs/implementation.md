@@ -1,28 +1,23 @@
 # Q2C 实现说明
 
-## 当前运行路径
+## 模块职责
 
-`Main.swift` 创建菜单栏入口和设置弹窗；`AssistantModel` 管理配置、异步复制、防重复和转交任务。`SystemSelection` 只发送来源复制事件及观察版本，`CopiedContent` 只保存版本和时间，不保存载荷。
+- `Main.swift` 创建菜单栏入口和设置弹窗；`AssistantModel` 管理配置、异步复制、防重复和转交任务。
+- `SystemSelection` 发送一次来源复制事件，只观察剪贴板版本。立即检查后每 50ms 检查一次，最多等待 400ms；`CopiedContent` 仅保存版本和时间元数据。
+- `ShortcutInteraction` 管理目标选择，支持标星优先、触发键切换、松键确认和鼠标选择。`PickerClickGuard` 管理目标浮层的外部取消点击；设置弹窗的关闭监听由 `AppDelegate` 独立管理，关闭时清理。
+- `CodexClipboardPaster` 打开配置的深链接，等待 200ms，核对 Codex 前台应用/PID、修饰键释放和剪贴板版本，随后发送一次 ⌘V。目标路由依赖 Codex 处理深链接，输入依赖 Codex 自动聚焦；不核对窗口、输入控件、任务身份或粘贴后的正文，由用户手动发送。
+- `ShortcutRecorder` 录制自定义快捷键；`GlobalShortcut` 在应用启动及配置更新时注册全局快捷键。
 
-`ShortcutInteraction` 冻结目标选择，按有效标星优先顺序呈现，支持触发键切换、松键确认和鼠标选择。`PickerClickGuard` 只在目标浮层期间过滤外部取消点击；`AppDelegate` 另为设置弹窗提供外部点击/失活关闭监听，关闭即清理。
+## 配置、日志与资源
 
-`CodexClipboardPaster` 打开线程链接，等待 200ms、检查前台 PID 和剪贴板版本，松键后发送一次原样粘贴。不读取 AX 控件树/输入正文，不输入头尾，不自动发送。
+`ConfigurationStore` 在本机保存目标链接、备注、标星和快捷键。`DiagnosticLog` 仅记录流程元数据、耗时和失败原因，不记录剪贴板载荷。存储位置、权限和日志轮换规则见 [README](../README.md#隐私与本机数据)。
 
-`ShortcutRecorder` 仅在本地控件录制时接收按键；`GlobalShortcut` 注册配置中的全局快捷键。构建本身不注册快捷键，应用启动时注册。
+`Q2CIcon` 提供自绘图标，资源生成器和构建脚本不引入第三方素材或 Swift 包依赖。
 
-## 配置、资源与日志
+## 构建与验证
 
-`ConfigurationStore` 保存多配置、备注、标星与快捷键，兼容旧设置。旧头尾字段保留但不转交，旧目录只读迁移；原文件不覆盖。配置和日志位置及权限见 README。
+构建命令和签名方式见 [README](../README.md#从源码构建)。构建不会安装或启动应用、修改权限或注册快捷键。
 
-`DiagnosticLog` 记录结构化流程元数据、耗时和原因，按 1MiB 轮换。`Q2CIcon` 自绘图标；资源生成器和构建脚本不引入第三方素材或 Swift 包依赖。
+测试使用合成目标和模拟复制、粘贴，覆盖无更新拒绝、元数据透传、单/多配置路由、旧头尾忽略、取消、失败及重复触发，不向真实任务发送消息。
 
-## 构建和验证
-
-```sh
-swift test
-zsh scripts/build-app.sh
-```
-
-测试使用合成目标和模拟复制/粘贴，不向真实任务发送消息。历史 AX 策略、DeliverySession、App Server/proxy 等代码与测试保留作历史实现，不由当前快捷键转交流程调用。
-
-历史开发记录保存在 verification.md；其中旧功能、时序和测试数量不作为当前行为说明。
+真实来源应用复制、图片等内容接收、快捷键及界面兼容性仍需现场验证，模拟测试通过不代表真实粘贴成功。
