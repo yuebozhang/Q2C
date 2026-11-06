@@ -4,6 +4,18 @@ Q2C 是一个 macOS 菜单栏工具：按快捷键复制来源应用中的内容
 
 **只观察剪贴板版本，不读取、不保存、不筛选或改写剪贴板内容。** 支持中英文、最多 8 组目标配置、配置备注和标星默认目标。
 
+## 界面预览
+
+以下图片由当前 SwiftUI 界面使用合成配置渲染，不含真实任务链接。
+
+设置面板：
+
+<img src="docs/images/settings.png" alt="Q2C 设置面板：备注、示例线程链接、默认星标与删除按钮" width="600">
+
+目标选择弹窗：
+
+<img src="docs/images/picker.png" alt="Q2C 目标选择：按触发键切换，松开快捷键转交" width="300">
+
 ## 下载与安装
 
 从 [GitHub Releases](https://github.com/yuebozhang/Q2C/releases) 下载预览安装包，解压后将 `Q2C.app` 拖到“应用程序”目录，再打开。应用运行后显示在菜单栏，不显示 Dock 图标。
