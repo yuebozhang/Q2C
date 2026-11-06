@@ -79,7 +79,6 @@ zsh scripts/build-app.sh
 
 - [使用流程](docs/usage-flow.md)
 - [实现说明](docs/implementation.md)
-- [开发约定](AGENTS.md)
 
 这是独立开发的工具，并非 OpenAI 官方应用。
 
