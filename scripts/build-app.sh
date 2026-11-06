@@ -11,6 +11,8 @@ cp "$task_bin_dir/Q2C" "$task_bundle/Contents/MacOS/Q2C.new"
 mv -f "$task_bundle/Contents/MacOS/Q2C.new" "$task_bundle/Contents/MacOS/Q2C"
 cp "$task_root/app/Resources/Q2C.icns" "$task_bundle/Contents/Resources/Q2C.icns"
 cp "$task_root/app/Info.plist" "$task_bundle/Contents/Info.plist"
+cp "$task_root/LICENSE" "$task_bundle/Contents/Resources/LICENSE"
+cp "$task_root/NOTICE" "$task_bundle/Contents/Resources/NOTICE"
 signing_identity="${Q2C_CODESIGN_IDENTITY:-Q2C Local Dev}"
 available_identities="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 if print -r -- "$available_identities" | grep -Fq "\"$signing_identity\"" || \

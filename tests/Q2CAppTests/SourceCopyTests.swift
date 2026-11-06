@@ -145,3 +145,54 @@ private final class CopyEnvironment: SourceCopyEnvironment {
     } catch TextInputIssue.sourceChanged { }
     #expect(env.pauses.count == 1)
 }
+
+@Test @MainActor func copyTimeoutDiagnosticsDistinguishUnchangedRevisionFromSourceChange() async throws {
+    let env = CopyEnvironment()
+    var events: [(String, [String: String])] = []
+    let selection = SystemSelection(environment: env, diagnostic: { events.append(($0, $1)) })
+    do {
+        _ = try await selection.read()
+        Issue.record("Expected timeout")
+    } catch TextInputIssue.copyUnavailable { }
+    let fields = try #require(events.last?.1)
+    #expect(events.last?.0 == "source.copyFinished")
+    #expect(fields["sourcePID"] == "1234")
+    #expect(fields["frontmostPID"] == "1234")
+    #expect(fields["revisionBefore"] == "10")
+    #expect(fields["revisionAfter"] == "10")
+    #expect(fields["elapsedMs"] == "400")
+    #expect(fields["outcome"] == "rejected")
+    #expect(fields["stage"] == "waitForUpdate")
+    #expect(events.first?.1["copyID"] == fields["copyID"])
+    #expect(env.sent == 1)
+}
+
+@Test @MainActor func sourceChangeDiagnosticsIncludeBothPIDsAndClipboardUpdate() async throws {
+    let env = CopyEnvironment()
+    env.onCopy = { $0.publish(); $0.frontmostPID = 4321 }
+    var fields: [String: String] = [:]
+    do {
+        _ = try await SystemSelection(environment: env, diagnostic: { _, value in fields = value }).read()
+        Issue.record("Expected source change")
+    } catch TextInputIssue.sourceChanged { }
+    #expect(fields["stage"] == "sourceCheck")
+    #expect(fields["sourcePID"] == "1234")
+    #expect(fields["frontmostPID"] == "4321")
+    #expect(fields["revisionBefore"] == "10")
+    #expect(fields["revisionAfter"] == "11")
+    #expect(env.sent == 1)
+}
+
+@Test @MainActor func ownForegroundDiagnosticsIdentifyPreflightRejectionWithoutCopy() async throws {
+    let env = CopyEnvironment()
+    env.frontmostPID = ProcessInfo.processInfo.processIdentifier
+    var fields: [String: String] = [:]
+    do {
+        _ = try await SystemSelection(environment: env, diagnostic: { _, value in fields = value }).read()
+        Issue.record("Expected own foreground rejection")
+    } catch TextInputIssue.sourceChanged { }
+    #expect(fields["stage"] == "preflight")
+    #expect(fields["sourcePID"] == fields["frontmostPID"])
+    #expect(fields["revisionBefore"] == "unobserved")
+    #expect(env.sent == 0)
+}

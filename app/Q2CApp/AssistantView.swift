@@ -12,32 +12,30 @@ struct AssistantView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header.padding(.horizontal, 16).padding(.vertical, 10)
+            header.padding(.horizontal, 14).frame(height: 40)
                 .background(heightMeasurement)
             Divider()
             if model.isChoosingTarget {
                 targetChooser
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 0) {
                         ForEach($model.profiles) { profile in
                             if profile.wrappedValue.id != model.profiles.first?.id {
                                 Divider()
                             }
                             profileBlock(profile: profile)
+                                .padding(.horizontal, 14)
                         }
 
                     }
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 14)
-                    .padding(.top, 8)
-                    .padding(.bottom, 6)
                     .background(heightMeasurement)
                 }
             }
 
         }
-        .frame(width: 660, height: min(measuredHeight + 1, maximumHeight), alignment: .top)
+        .frame(width: 600, height: min(measuredHeight + 1, maximumHeight), alignment: .top)
         .onPreferenceChange(PanelContentHeight.self) { measuredHeight = $0 }
         .onAppear {
             let screen = NSApp.keyWindow?.screen ?? NSScreen.main
@@ -104,12 +102,14 @@ struct AssistantView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Text(text("选中内容按快捷键转交到指定的 Codex 对话线程", "Use the shortcut to forward selected content to the specified Codex conversation thread"))
+        HStack(spacing: 8) {
+            Text(text("选中内容按快捷键转交到 Codex 对话线程", "Use the shortcut to forward selected content to a Codex conversation thread"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.primary)
             Spacer()
             Button(isEnglish ? "CN" : "EN") { isEnglish.toggle() }
+                .buttonStyle(.plain)
+                .frame(minWidth: 24, minHeight: 24)
                 .help(isEnglish ? "切换到中文" : "Switch to English")
                 .accessibilityLabel(isEnglish ? "切换到中文" : "Switch to English")
             ShortcutRecorder(shortcut: $model.profiles[0].shortcut,
@@ -117,11 +117,16 @@ struct AssistantView: View {
                 .frame(width: 146, height: 28)
             Button(text("新建配置", "Add profile"), systemImage: "plus", action: model.addProfile)
                 .labelStyle(.iconOnly)
+                .font(.system(size: 16, weight: .regular))
                 .help(text("新建配置", "Add profile"))
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .frame(width: 24, height: 24)
                 .disabled(!model.canAddProfile || model.isChoosingTarget)
             Button(text("退出", "Quit"), systemImage: "power", action: { NSApp.terminate(nil) })
                 .labelStyle(.iconOnly)
+                .font(.system(size: 16, weight: .regular))
+                .buttonStyle(.plain)
+                .frame(width: 24, height: 24)
                 .help(text("退出 Q2C", "Quit Q2C"))
         }
     }
@@ -137,6 +142,7 @@ struct AssistantView: View {
                     .disabled(model.isBusy)
                 TextField(text("请输入深度链接（必填）", "Deep link (required)"), text: profile.targetLink)
                     .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: .infinity)
                     .accessibilityLabel(text("Codex 深度链接，必填", "Codex deep link, required"))
                     .modifier(FullFieldHover(content: profile.wrappedValue.targetLink, label: text("深度链接", "Deep link")))
                     .disabled(model.isBusy)
@@ -144,8 +150,9 @@ struct AssistantView: View {
                     model.favoriteProfile(profile.wrappedValue.id)
                 } label: {
                     Image(systemName: profile.wrappedValue.isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(profile.wrappedValue.isFavorite ? Color.yellow : Color.secondary)
-                        .frame(width: 20, height: 24)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(profile.wrappedValue.isFavorite ? text("取消默认转交配置", "Clear default target") : text("设为默认转交配置", "Set default target"))
@@ -154,7 +161,8 @@ struct AssistantView: View {
                 Button {
                     profilePendingDeletion = profile.wrappedValue.id
                 } label: {
-                    Image(systemName: "trash")
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(.secondary)
                         .frame(width: 24, height: 24)
                 }
@@ -163,6 +171,8 @@ struct AssistantView: View {
                 .help(text("删除这组配置", "Delete profile"))
                 .disabled(model.isBusy)
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .frame(height: 45)
 
             if !profile.wrappedValue.targetLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                (try? profile.wrappedValue.target()) == nil {
@@ -172,8 +182,6 @@ struct AssistantView: View {
 
 
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
 
     }
 

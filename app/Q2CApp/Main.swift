@@ -2,14 +2,17 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private let model = AssistantModel()
     private let notice = TransientNotice()
+    private var outsideClickMonitor: Any?
+    private var localClickMonitor: Any?
+    private var deactivateObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        DiagnosticLog.shared.record("app.started", fields: ["build": "diagnostics-v11-shortcut-picker", "shortcutMode": "automatic"])
+        DiagnosticLog.shared.record("app.started", fields: ["build": "diagnostics-v16-source-copy-focus", "shortcutMode": "automatic"])
         NSApp.applicationIconImage = Q2CIcon.applicationImage()
         installMainMenu()
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -47,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let popover { return popover }
         let popover = NSPopover()
         popover.behavior = .transient
+        popover.delegate = self
         let controller = NSHostingController(rootView: AssistantView(model: model))
         controller.sizingOptions = [.preferredContentSize]
         popover.contentViewController = controller
@@ -55,7 +59,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
-    func applicationWillTerminate(_ notification: Notification) { model.stop() }
+    func applicationWillTerminate(_ notification: Notification) {
+        stopPopoverDismissalMonitoring()
+        model.stop()
+    }
+
+    func popoverDidShow(_ notification: Notification) {
+        stopPopoverDismissalMonitoring()
+        let events: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: events) { [weak self] _ in
+            Task { @MainActor in self?.dismissPopoverIfOutside() }
+        }
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: events) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self, let popover = self.popover, popover.isShown,
+                      let window = popover.contentViewController?.view.window else { return }
+                // Keep controls and deletion confirmation sheets interactive. The status
+                // button handles its own toggle, so do not close then reopen it here.
+                if let eventWindow = event.window,
+                   eventWindow === window || eventWindow.sheetParent === window { return }
+                self.dismissPopoverIfOutside()
+            }
+            return event // Observe only; never swallow the user's outside click.
+        }
+        deactivateObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: NSApp, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.popover?.isShown == true else { return }
+                DiagnosticLog.shared.record("settings.dismissed", fields: ["reason": "appDeactivated"])
+                self.popover?.performClose(nil)
+            }
+        }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        stopPopoverDismissalMonitoring()
+    }
+
+    private func dismissPopoverIfOutside() {
+        guard let popover, popover.isShown,
+              let window = popover.contentViewController?.view.window else { return }
+        let point = NSEvent.mouseLocation
+        if window.frame.contains(point) { return }
+        if let sheet = window.attachedSheet, sheet.frame.contains(point) { return }
+        if let button = statusItem?.button, let statusWindow = button.window,
+           statusWindow.convertToScreen(button.convert(button.bounds, to: nil)).contains(point) { return }
+        DiagnosticLog.shared.record("settings.dismissed", fields: ["reason": "outsideClick"])
+        popover.performClose(nil)
+    }
+
+    private func stopPopoverDismissalMonitoring() {
+        for monitor in [outsideClickMonitor, localClickMonitor].compactMap({ $0 }) {
+            NSEvent.removeMonitor(monitor)
+        }
+        outsideClickMonitor = nil
+        localClickMonitor = nil
+        if let deactivateObserver { NotificationCenter.default.removeObserver(deactivateObserver) }
+        deactivateObserver = nil
+    }
 
     private func installMainMenu() {
         let mainMenu = NSMenu(title: "Q2C")

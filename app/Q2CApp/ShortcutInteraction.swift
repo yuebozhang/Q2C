@@ -171,6 +171,7 @@ final class ShortcutInteraction: ObservableObject, ShortcutResolving {
 }
 
 private struct ShortcutPicker: View {
+    @State private var isCloseHovered = false
     @AppStorage("Q2C.interfaceEnglish") private var isEnglish = false
 
     private func text(_ chinese: String, _ english: String) -> String {
@@ -195,22 +196,29 @@ private struct ShortcutPicker: View {
                     .font(.headline)
                 Spacer()
                 Button { select(nil) } label: {
-                    Image(systemName: "xmark").frame(width: 24, height: 24)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(isCloseHovered ? Color.white : Color.primary)
+                        .frame(width: 30, height: 30)
+                        .background(isCloseHovered ? Color.accentColor : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { isCloseHovered = $0 }
                 .accessibilityLabel(text("取消转交", "Cancel forwarding"))
                 .help(text("取消转交", "Cancel forwarding"))
             }
             ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
             ForEach(Array(profiles.enumerated()), id: \.element.id) { index, profile in
                 Button { select(profile.id) } label: {
                     HStack(spacing: 10) {
-                        if profile.isFavorite { Image(systemName: "star.fill") }
                         Text(displayName(profile)).font(.headline).lineLimit(1)
                             .help(displayName(profile))
                         Spacer()
+                        if profile.isFavorite { Image(systemName: "star.fill") }
                     }
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -225,7 +233,7 @@ private struct ShortcutPicker: View {
             }
                 }
             }
-            .frame(height: min(CGFloat(profiles.count) * 40 + CGFloat(max(0, profiles.count - 1)) * 8,
+            .frame(height: min(CGFloat(profiles.count) * 40 + CGFloat(max(0, profiles.count - 1)) * 12,
                                max(100, (NSScreen.main?.visibleFrame.height ?? 780) - 180)))
             .onChange(of: interaction.highlighted) { _, index in
                 proxy.scrollTo(profiles[index].id, anchor: .center)
@@ -235,7 +243,7 @@ private struct ShortcutPicker: View {
         .padding(.horizontal, 18)
         .padding(.top, 14)
         .padding(.bottom, 10)
-        .frame(width: 410)
+        .frame(width: 300)
         .background {
             Color.clear.contentShape(Rectangle()).onTapGesture { select(nil) }
         }

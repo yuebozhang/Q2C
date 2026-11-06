@@ -29,7 +29,9 @@ final class RecorderButton: NSButton {
 
     override init(frame: NSRect) {
         super.init(frame: frame)
-        bezelStyle = .rounded
+        isBordered = false
+        bezelStyle = .regularSquare
+        contentTintColor = .labelColor
         target = self
         action = #selector(startRecording)
         setAccessibilityLabel("自定义快捷键")
